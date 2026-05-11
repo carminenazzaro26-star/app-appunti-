@@ -1,5 +1,4 @@
-flet[fastapi]
-flet-web
+flet[fastapi]==0.24.1
 supabase
 fastapi
 uvicorn
