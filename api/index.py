@@ -487,9 +487,18 @@ def main(page: ft.Page):
 
     page.go(page.route)
 
+# Rilevamento sicuro del renderer per Vercel
+renderer = "html"
+try:
+    if hasattr(ft.WebRenderer, "HTML"):
+        renderer = ft.WebRenderer.HTML
+    elif hasattr(ft.WebRenderer, "html"):
+        renderer = ft.WebRenderer.html
+except:
+    pass
+
 # Esportazione ottimizzata per Vercel
-# Usiamo una stringa per il renderer per compatibilità totale
-app = flet_fastapi.app(main)
+app = flet_fastapi.app(main, web_renderer=renderer)
 
 if __name__ == "__main__":
     import uvicorn
