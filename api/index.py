@@ -489,7 +489,7 @@ def main(page: ft.Page):
 
 # Esportazione ottimizzata per Vercel (Serverless)
 # Vercel non supporta i Websocket, quindi Flet userà il polling HTTP automaticamente
-app = flet_fastapi.app(main, web_renderer="html")
+app = flet_fastapi.app(main)
 
 if __name__ == "__main__":
     ft.app(target=main)
