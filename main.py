@@ -1,5 +1,5 @@
 import flet as ft
-import flet_fastapi
+import flet.fastapi as flet_fastapi
 from database import db
 
 def main(page: ft.Page):
