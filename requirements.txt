@@ -1,4 +1,4 @@
-flet
-flet-fastapi
+flet==0.20.2
+flet-fastapi==0.20.2
 supabase
 websockets>=13.0
