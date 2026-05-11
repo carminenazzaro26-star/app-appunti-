@@ -2,6 +2,7 @@
 import flet as ft
 import flet.fastapi as flet_fastapi
 from .database import db
+print(f"DEBUG: WebRenderer attributes: {dir(ft.WebRenderer)}")
 
 def main(page: ft.Page):
     page.title = "App Appunti"
