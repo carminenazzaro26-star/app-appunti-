@@ -2,6 +2,10 @@
   "version": 2,
   "rewrites": [
     {
+      "source": "/(flet_.*|assets/.*|favicon.*)",
+      "destination": "/api/index"
+    },
+    {
       "source": "/(.*)",
       "destination": "/api/index"
     }
