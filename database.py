@@ -1,5 +1,4 @@
 import os
-from supabase import create_client, Client
 
 class Database:
     def __init__(self):
@@ -7,14 +6,15 @@ class Database:
         self.supabase_url = os.getenv("SUPABASE_URL")
         self.supabase_key = os.getenv("SUPABASE_KEY")
         
-        self.client: Client | None = None
+        self.client = None
         self.current_user = None
         
         if not self.supabase_url or not self.supabase_key:
-            print("ERRORE: SUPABASE_URL o SUPABASE_KEY non configurate nelle variabili d'ambiente.")
+            print("ERRORE: SUPABASE_URL o SUPABASE_KEY non configurate.")
             return
 
         try:
+            from supabase import create_client
             self.client = create_client(self.supabase_url, self.supabase_key)
             print("Connessione a Supabase riuscita!")
         except Exception as e:
@@ -105,8 +105,6 @@ class Database:
                 )
             return storage_path
         except Exception as e:
-            import traceback
-            traceback.print_exc()
             raise Exception(f"Errore caricamento file: {e}")
 
     def get_file_url(self, storage_path, download=False):
