@@ -491,8 +491,7 @@ def main(page: ft.Page):
 # Vercel non supporta i Websocket, quindi Flet userà il polling HTTP automaticamente
 app = flet_fastapi.app(
     main,
-    export_assets_dir="assets",
-    web_renderer=ft.WebRenderer.HTML
+    export_assets_dir="assets"
 )
 
 if __name__ == "__main__":
