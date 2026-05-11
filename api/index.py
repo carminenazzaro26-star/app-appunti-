@@ -4,6 +4,7 @@ import flet.fastapi as flet_fastapi
 from .database import db
 
 def main(page: ft.Page):
+    print("APP_START: main function called")
     page.title = "App Appunti"
     page.theme_mode = ft.ThemeMode.LIGHT
     page.theme = ft.Theme(color_scheme_seed="#4C51F7", font_family="Roboto")
