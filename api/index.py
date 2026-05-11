@@ -486,14 +486,8 @@ def main(page: ft.Page):
 
     page.go(page.route)
 
-from fastapi import FastAPI
-
-# Creazione app FastAPI esplicita
-app = FastAPI()
-
-# Montaggio dell'app Flet sulla root
-# Usiamo FletApp che è più stabile per gli ambienti serverless
-app.mount("/", flet_fastapi.FletApp(main))
+# Esportazione standard per Vercel
+app = flet_fastapi.app(main)
 
 if __name__ == "__main__":
     import uvicorn
