@@ -486,8 +486,13 @@ def main(page: ft.Page):
     page.go(page.route)
 
 
-# Esportazione obbligatoria per Vercel
-app = flet_fastapi.app(main)
+# Esportazione ottimizzata per Vercel (Serverless)
+# Vercel non supporta i Websocket, quindi Flet userà il polling HTTP automaticamente
+app = flet_fastapi.app(
+    main,
+    export_assets_dir="assets",
+    web_renderer=ft.WebRenderer.HTML
+)
 
 if __name__ == "__main__":
     ft.app(target=main)
