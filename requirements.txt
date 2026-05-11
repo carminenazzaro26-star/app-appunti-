@@ -1,3 +1,5 @@
 flet[fastapi]
 flet-web
 supabase
+fastapi
+uvicorn
