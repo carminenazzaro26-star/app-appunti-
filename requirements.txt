@@ -1,4 +1,5 @@
-flet
+flet>=0.24.0
+flet-web>=0.24.0
 supabase
 fastapi
 uvicorn
