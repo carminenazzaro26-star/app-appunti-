@@ -1,3 +1,4 @@
+# Versione aggiornata per forzare il build di Vercel - 21:58
 import flet as ft
 import flet.fastapi as flet_fastapi
 from database import db
