@@ -1,6 +1,4 @@
-flet>=0.24.0
-supabase==2.4.5
-realtime==1.0.3
-websockets==12.0
+flet
+supabase
 fastapi
 uvicorn

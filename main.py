@@ -486,7 +486,19 @@ def main(page: ft.Page):
     page.go(page.route)
 
 # Per il deployment su Vercel (Flet-FastAPI)
-app = flet_fastapi.app(main)
+try:
+    import flet.fastapi as flet_fastapi
+    app = flet_fastapi.app(main)
+except Exception as startup_error:
+    print(f"CRITICAL STARTUP ERROR: {startup_error}")
+    import traceback
+    traceback.print_exc()
+    # Crea un'app FastAPI vuota per evitare il crash totale del builder
+    from fastapi import FastAPI
+    app = FastAPI()
+    @app.get("/")
+    def error_page():
+        return {"error": "App failed to start", "details": str(startup_error)}
 
 if __name__ == "__main__":
     ft.app(target=main)
