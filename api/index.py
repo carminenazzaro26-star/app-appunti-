@@ -486,10 +486,15 @@ def main(page: ft.Page):
 
     page.go(page.route)
 
+from fastapi import FastAPI
 
-# Esportazione ottimizzata per Vercel (Serverless)
-# Vercel non supporta i Websocket, quindi Flet userà il polling HTTP automaticamente
-app = flet_fastapi.app(main)
+# Creazione app FastAPI esplicita
+app = FastAPI()
+
+# Montaggio dell'app Flet sulla root
+# Usiamo FletApp che è più stabile per gli ambienti serverless
+app.mount("/", flet_fastapi.FletApp(main))
 
 if __name__ == "__main__":
-    ft.app(target=main)
+    import uvicorn
+    uvicorn.run(app)
