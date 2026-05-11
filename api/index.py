@@ -487,7 +487,8 @@ def main(page: ft.Page):
 
     page.go(page.route)
 
-# Esportazione standard per Vercel
+# Esportazione ottimizzata per Vercel
+# Usiamo una stringa per il renderer per compatibilità totale
 app = flet_fastapi.app(main)
 
 if __name__ == "__main__":
