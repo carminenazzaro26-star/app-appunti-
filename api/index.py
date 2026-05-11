@@ -488,14 +488,14 @@ def main(page: ft.Page):
     page.go(page.route)
 
 # Rilevamento sicuro del renderer per Vercel
-renderer = "html"
+renderer = None 
 try:
     if hasattr(ft.WebRenderer, "HTML"):
         renderer = ft.WebRenderer.HTML
-    elif hasattr(ft.WebRenderer, "html"):
-        renderer = ft.WebRenderer.html
+    elif hasattr(ft.WebRenderer, "CANVAS_KIT"):
+        renderer = ft.WebRenderer.CANVAS_KIT
 except:
-    pass
+    renderer = None
 
 # Esportazione ottimizzata per Vercel
 app = flet_fastapi.app(main, web_renderer=renderer)
