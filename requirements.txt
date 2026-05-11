@@ -1,3 +1,4 @@
-flet>=0.21.0
-supabase
-websockets>=13.0
+flet>=0.23.0
+supabase==2.11.0
+realtime>=2.0.0
+websockets==13.1
