@@ -3,21 +3,22 @@ from supabase import create_client, Client
 
 class Database:
     def __init__(self):
-
-        self.supabase_url: str = os.environ.get("SUPABASE_URL", "https://fvariopykkztlmfaixxt.supabase.co")
-        self.supabase_key: str = os.environ.get("SUPABASE_KEY", "sb_publishable_qPbh-7BxAjtUn9Dx-ptiVw_s93DKCUq")
+        # Recupera le credenziali dalle variabili d'ambiente
+        self.supabase_url = os.getenv("SUPABASE_URL")
+        self.supabase_key = os.getenv("SUPABASE_KEY")
         
         self.client: Client | None = None
         self.current_user = None
         
-        if self.supabase_url and self.supabase_key:
-            try:
-                self.client = create_client(self.supabase_url, self.supabase_key)
-                print(f"Connessione a Supabase riuscita! (Versione: {__import__('supabase').__version__})")
-            except Exception as e:
-                import traceback
-                traceback.print_exc()
-                print(f"Errore inizializzazione Supabase: {e}")
+        if not self.supabase_url or not self.supabase_key:
+            print("ERRORE: SUPABASE_URL o SUPABASE_KEY non configurate nelle variabili d'ambiente.")
+            return
+
+        try:
+            self.client = create_client(self.supabase_url, self.supabase_key)
+            print("Connessione a Supabase riuscita!")
+        except Exception as e:
+            print(f"Errore inizializzazione Supabase: {e}")
 
     def is_configured(self):
         return self.client is not None

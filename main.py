@@ -1,4 +1,5 @@
 import flet as ft
+import flet_fastapi
 from database import db
 
 def main(page: ft.Page):
@@ -464,9 +465,28 @@ def main(page: ft.Page):
     page.on_resize = on_resize
 
     if not db.is_configured():
-        page.add(ft.Text("Configura SUPABASE_URL e SUPABASE_KEY in database.py o come variabili d'ambiente per procedere.", color=ft.colors.ERROR, size=20, text_align=ft.TextAlign.CENTER))
+        page.add(
+            ft.Container(
+                content=ft.Column([
+                    ft.Icon(ft.icons.ERROR_OUTLINE, color=ft.colors.ERROR, size=50),
+                    ft.Text("Configurazione Mancante", size=30, weight=ft.FontWeight.BOLD),
+                    ft.Text(
+                        "Le variabili d'ambiente SUPABASE_URL e SUPABASE_KEY non sono state trovate.\n"
+                        "Assicurati di averle caricate correttamente nel pannello di controllo di Vercel.",
+                        text_align=ft.TextAlign.CENTER,
+                        size=16
+                    )
+                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                alignment=ft.alignment.center,
+                expand=True
+            )
+        )
         return
 
     page.go(page.route)
 
-ft.app(target=main)
+# Per il deployment su Vercel (Flet-FastAPI)
+app = flet_fastapi.app(main)
+
+if __name__ == "__main__":
+    ft.app(target=main)
