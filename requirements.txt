@@ -1,5 +1,4 @@
-flet==0.21.2
-flet-web==0.21.2
+flet>=0.24.0
 supabase==2.4.5
 realtime==1.0.3
 websockets==12.0
