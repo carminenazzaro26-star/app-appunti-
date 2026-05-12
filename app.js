@@ -613,8 +613,9 @@ function initGoogleAuth() {
     return;
   }
   
-  if (!window.GOOGLE_CLIENT_ID || window.GOOGLE_CLIENT_ID === '__GOOGLE_CLIENT_ID__') {
-    console.warn('Google Client ID non configurato. L\'upload su Drive non funzionerà.');
+  if (!window.GOOGLE_CLIENT_ID || window.GOOGLE_CLIENT_ID === '__GOOGLE_CLIENT_ID__' || window.GOOGLE_CLIENT_ID === '') {
+    console.warn('Google Client ID non configurato correttamente.');
+    // Mostriamo un piccolo avviso se l'utente prova a caricare
     return;
   }
   
@@ -624,7 +625,7 @@ function initGoogleAuth() {
     callback: (response) => {
       if (response.error !== undefined) {
         console.error('Errore Google Auth:', response);
-        showToast('❌ Errore autenticazione Google: ' + response.error);
+        showToast('❌ Errore Google Auth: ' + response.error);
         return;
       }
       state.googleToken = response.access_token;
@@ -637,7 +638,9 @@ function initGoogleAuth() {
 async function getGoogleToken() {
   return new Promise((resolve, reject) => {
     if (!tokenClient) {
-      reject(new Error('Sistema di autenticazione Google non inizializzato. Controlla il Client ID nelle impostazioni GitHub.'));
+      const msg = 'Configurazione Google mancante. Assicurati di aver aggiunto GOOGLE_CLIENT_ID nei segreti di GitHub e che il deploy sia completato.';
+      showToast('⚠️ ' + msg);
+      reject(new Error(msg));
       return;
     }
 
