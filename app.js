@@ -279,9 +279,9 @@ function buildCatEl(node, depth) {
   const row = document.createElement('div');
   row.className = 'cat-item' + (isSelected ? ' selected' : '');
   row.style.paddingLeft = (8 + depth * 16) + 'px';
-  if (isSelected) {
-    row.style.background = color + '18'; // 10% opacity
-  }
+  // Sfondo colorato per tutta la casella (più intenso se selezionata)
+  row.style.background = isSelected ? color + '40' : color + '22';
+  row.style.borderLeft = `3px solid ${color}`;
 
   // Toggle arrow
   const toggle = document.createElement('span');
@@ -311,13 +311,6 @@ function buildCatEl(node, depth) {
   name.textContent = node.name;
   if (isSelected) name.style.color = color;
 
-  // Pallino colore piccolo
-  const dot = document.createElement('span');
-  dot.style.cssText = `
-    width:8px;height:8px;border-radius:50%;
-    background:${color};flex-shrink:0;margin-right:2px;
-  `;
-
   const del = document.createElement('button');
   del.className = 'cat-delete';
   del.title = 'Elimina';
@@ -327,7 +320,6 @@ function buildCatEl(node, depth) {
   row.appendChild(toggle);
   row.appendChild(icon);
   row.appendChild(name);
-  row.appendChild(dot);
   row.appendChild(del);
   row.addEventListener('click', () => selectCategory(node.id));
 
