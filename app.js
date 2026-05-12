@@ -3,10 +3,9 @@
 // Le credenziali vengono iniettate da config.js (generato da CI)
 // ================================================================
 
-const { createClient } = supabase;
-
-// Inizializza il client Supabase usando le variabili da config.js
-const sb = createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
+// sb viene inizializzato dentro DOMContentLoaded per evitare il
+// Temporal Dead Zone error se config.js non è ancora stato caricato.
+let sb;
 
 // ================================================================
 // STATO APPLICAZIONE
@@ -89,14 +88,44 @@ async function handleLogin() {
   }
 }
 
-// Login on Enter key
+// ================================================================
+// INIZIALIZZAZIONE — avviene dopo che tutti gli script sono caricati
+// ================================================================
 document.addEventListener('DOMContentLoaded', () => {
+
+  // 1. Inizializza il client Supabase in modo sicuro
+  try {
+    if (!window.SUPABASE_URL || !window.SUPABASE_KEY ||
+        window.SUPABASE_URL === '__SUPABASE_URL__') {
+      throw new Error('config.js non trovato o non configurato.');
+    }
+    const { createClient } = window.supabase;
+    sb = createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
+  } catch (err) {
+    document.body.innerHTML = `
+      <div style="height:100vh;display:flex;flex-direction:column;align-items:center;
+                  justify-content:center;font-family:Inter,sans-serif;gap:12px;padding:24px;text-align:center">
+        <div style="font-size:48px">⚙️</div>
+        <h2 style="color:#0F172A">Configurazione mancante</h2>
+        <p style="color:#64748B;max-width:400px">
+          Il file <code>config.js</code> non è stato trovato o non è configurato.<br/>
+          Per sviluppo locale: copia <code>config.template.js</code> in <code>config.js</code>
+          e inserisci le tue credenziali Supabase.
+        </p>
+        <p style="color:#94A3B8;font-size:13px">Errore: ${err.message}</p>
+      </div>`;
+    return;
+  }
+
+  // 2. Event listeners tastiera
   document.getElementById('password-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') handleLogin();
   });
   document.getElementById('email-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') document.getElementById('password-input').focus();
   });
+
+  // 3. Controlla sessione esistente
   checkSession();
 });
 
