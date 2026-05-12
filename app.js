@@ -415,7 +415,7 @@ async function loadNotes() {
   const container = document.getElementById('notes-container');
   container.innerHTML = '<div class="empty-state"><div class="spinner" style="border-color:var(--border);border-top-color:var(--primary)"></div></div>';
 
-  let query = sb.from('notes').select('*').order('id', { ascending: false });
+  let query = sb.from('notes').select('*').order('created_at', { ascending: false, nullsFirst: false });
 
   if (state.searchQuery) {
     query = query.ilike('title', `%${state.searchQuery}%`);
