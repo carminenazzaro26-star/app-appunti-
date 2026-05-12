@@ -159,6 +159,20 @@
         <label for="new-cat-name">Nome</label>
         <input type="text" id="new-cat-name" placeholder="Es. Matematica" />
       </div>
+      <div class="form-group">
+        <label>Colore cartella</label>
+        <div class="color-palette" id="color-palette">
+          <button class="color-swatch selected" data-color="#4C51F7" style="background:#4C51F7" title="Blu" onclick="selectColor('#4C51F7', this)"></button>
+          <button class="color-swatch" data-color="#7C3AED" style="background:#7C3AED" title="Viola" onclick="selectColor('#7C3AED', this)"></button>
+          <button class="color-swatch" data-color="#EC4899" style="background:#EC4899" title="Rosa" onclick="selectColor('#EC4899', this)"></button>
+          <button class="color-swatch" data-color="#EF4444" style="background:#EF4444" title="Rosso" onclick="selectColor('#EF4444', this)"></button>
+          <button class="color-swatch" data-color="#F97316" style="background:#F97316" title="Arancione" onclick="selectColor('#F97316', this)"></button>
+          <button class="color-swatch" data-color="#EAB308" style="background:#EAB308" title="Giallo" onclick="selectColor('#EAB308', this)"></button>
+          <button class="color-swatch" data-color="#22C55E" style="background:#22C55E" title="Verde" onclick="selectColor('#22C55E', this)"></button>
+          <button class="color-swatch" data-color="#14B8A6" style="background:#14B8A6" title="Teal" onclick="selectColor('#14B8A6', this)"></button>
+          <button class="color-swatch" data-color="#64748B" style="background:#64748B" title="Grigio" onclick="selectColor('#64748B', this)"></button>
+        </div>
+      </div>
       <div class="modal-actions">
         <button class="btn-secondary" onclick="closeModal('modal-add-category')">Annulla</button>
         <button class="btn-primary" onclick="addCategory()">Crea</button>

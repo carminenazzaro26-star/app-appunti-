@@ -18,6 +18,7 @@ const state = {
   notes: [],
   selectedNote: null,
   searchQuery: '',
+  selectedColor: '#4C51F7',  // colore default per nuova categoria
 };
 
 // ================================================================
@@ -125,7 +126,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Enter') document.getElementById('password-input').focus();
   });
 
-  // 3. Controlla sessione esistente
+  // 3. Ascolta i cambi di sessione (login/logout automatico)
+  sb.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN' && session?.user) {
+      state.user = session.user;
+      enterDashboard();
+    } else if (event === 'SIGNED_OUT') {
+      state.user = null;
+      showPage('page-login');
+    }
+  });
+
+  // 4. Controlla sessione esistente (auto-login se già loggato)
   checkSession();
 });
 
@@ -194,10 +206,14 @@ function buildCatEl(node, depth) {
   const hasChildren = node.children && node.children.length > 0;
   const isExpanded = state.expandedCategories.has(node.id);
   const isSelected = node.id === state.selectedCategoryId;
+  const color = node.color || '#4C51F7';
 
   const row = document.createElement('div');
   row.className = 'cat-item' + (isSelected ? ' selected' : '');
   row.style.paddingLeft = (8 + depth * 16) + 'px';
+  if (isSelected) {
+    row.style.background = color + '18'; // 10% opacity
+  }
 
   // Toggle arrow
   const toggle = document.createElement('span');
@@ -212,13 +228,27 @@ function buildCatEl(node, depth) {
     });
   }
 
+  // Icona colorata
   const icon = document.createElement('span');
   icon.className = 'cat-icon';
+  icon.style.cssText = `
+    display:inline-flex;align-items:center;justify-content:center;
+    width:22px;height:22px;border-radius:6px;
+    background:${color}22;font-size:13px;flex-shrink:0;
+  `;
   icon.textContent = hasChildren ? '📂' : '📁';
 
   const name = document.createElement('span');
   name.className = 'cat-name';
   name.textContent = node.name;
+  if (isSelected) name.style.color = color;
+
+  // Pallino colore piccolo
+  const dot = document.createElement('span');
+  dot.style.cssText = `
+    width:8px;height:8px;border-radius:50%;
+    background:${color};flex-shrink:0;margin-right:2px;
+  `;
 
   const del = document.createElement('button');
   del.className = 'cat-delete';
@@ -229,6 +259,7 @@ function buildCatEl(node, depth) {
   row.appendChild(toggle);
   row.appendChild(icon);
   row.appendChild(name);
+  row.appendChild(dot);
   row.appendChild(del);
   row.addEventListener('click', () => selectCategory(node.id));
 
@@ -257,12 +288,25 @@ function selectCategory(id) {
 
 function openAddCategoryDialog() {
   document.getElementById('new-cat-name').value = '';
+  // Reset colore al default
+  state.selectedColor = '#4C51F7';
+  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+  const defaultSwatch = document.querySelector('.color-swatch[data-color="#4C51F7"]');
+  if (defaultSwatch) defaultSwatch.classList.add('selected');
+
   const hint = document.getElementById('modal-cat-hint');
   hint.textContent = state.selectedCategoryId
     ? 'Verrà creata come sottocategoria di quella selezionata'
     : 'Crea una categoria principale';
   openModal('modal-add-category');
   setTimeout(() => document.getElementById('new-cat-name').focus(), 100);
+}
+
+// Selezione colore nella palette
+function selectColor(color, btn) {
+  state.selectedColor = color;
+  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+  btn.classList.add('selected');
 }
 
 document.addEventListener('keydown', e => {
@@ -279,6 +323,7 @@ async function addCategory() {
     name,
     user_id: state.user.id,
     parent_id: state.selectedCategoryId || null,
+    color: state.selectedColor || '#4C51F7',
   };
 
   const { error } = await sb.from('categories').insert(payload);
