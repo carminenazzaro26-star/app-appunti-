@@ -628,8 +628,16 @@ function initGoogleAuth() {
   
   if (!window.GOOGLE_CLIENT_ID || window.GOOGLE_CLIENT_ID === '__GOOGLE_CLIENT_ID__' || window.GOOGLE_CLIENT_ID === '') {
     console.warn('Google Client ID non configurato correttamente.');
-    // Mostriamo un piccolo avviso se l'utente prova a caricare
     return;
+  }
+
+  // Carica il token salvato se esiste e non è scaduto
+  const savedToken = localStorage.getItem('google_drive_token');
+  const savedExpiry = localStorage.getItem('google_drive_token_expiry');
+  if (savedToken && savedExpiry && Date.now() < parseInt(savedExpiry) - 60000) {
+    state.googleToken = savedToken;
+    state.googleTokenExpiry = parseInt(savedExpiry);
+    console.log('Token Google recuperato dalla cache locale');
   }
   
   tokenClient = google.accounts.oauth2.initTokenClient({
@@ -643,43 +651,38 @@ function initGoogleAuth() {
       }
       state.googleToken = response.access_token;
       state.googleTokenExpiry = Date.now() + (response.expires_in * 1000);
-      console.log('Google Token acquisito con successo');
+      
+      // Salva localmente
+      localStorage.setItem('google_drive_token', state.googleToken);
+      localStorage.setItem('google_drive_token_expiry', state.googleTokenExpiry);
+      
+      showToast('✅ Accesso Google autorizzato!');
+      
+      // Se c'era una funzione in attesa, risolvila
+      if (state.pendingAuthResolve) {
+        state.pendingAuthResolve(state.googleToken);
+        state.pendingAuthResolve = null;
+      }
     },
   });
 }
 
-async function getGoogleToken() {
+async function getGoogleToken(forcePopup = false) {
+  if (state.googleToken && Date.now() < state.googleTokenExpiry - 60000) {
+    return state.googleToken;
+  }
+
   return new Promise((resolve, reject) => {
     if (!tokenClient) {
-      const msg = 'Configurazione Google mancante. Assicurati di aver aggiunto GOOGLE_CLIENT_ID nei segreti di GitHub e che il deploy sia completato.';
+      const msg = 'Configurazione Google mancante.';
       showToast('⚠️ ' + msg);
       reject(new Error(msg));
       return;
     }
 
-    if (state.googleToken && Date.now() < state.googleTokenExpiry - 60000) {
-      showToast('🔑 Uso token esistente...');
-      resolve(state.googleToken);
-      return;
-    }
-
+    state.pendingAuthResolve = resolve;
     showToast('🔑 Apertura finestra di accesso Google...');
-    
-    tokenClient.callback = (response) => {
-      console.log('Risposta Google Auth:', response);
-      if (response.error !== undefined) {
-        showToast('❌ Errore Google Auth: ' + response.error);
-        reject(response);
-        return;
-      }
-      showToast('✅ Accesso Google autorizzato con successo!');
-      state.googleToken = response.access_token;
-      state.googleTokenExpiry = Date.now() + (response.expires_in * 1000);
-      resolve(state.googleToken);
-    };
-
-    // Usiamo prompt: 'select_account' per essere sicuri che la finestra si apra
-    tokenClient.requestAccessToken({ prompt: 'select_account' });
+    tokenClient.requestAccessToken({ prompt: forcePopup ? 'select_account' : '' });
   });
 }
 
