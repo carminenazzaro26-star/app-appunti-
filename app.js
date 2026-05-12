@@ -692,69 +692,74 @@ async function getOrCreateFolder(token) {
 }
 
 async function uploadToDrive(file) {
+  console.log('Inizio upload su Drive:', file.name);
   const token = await getGoogleToken();
   const folderId = await getOrCreateFolder(token);
+  console.log('Cartella destinazione ID:', folderId);
   
   const metadata = {
     name: file.name,
     parents: [folderId]
   };
   
-  const boundary = 'foo_bar_baz';
+  const boundary = '-------314159265358979323846';
   const delimiter = "\r\n--" + boundary + "\r\n";
   const close_delim = "\r\n--" + boundary + "--";
 
-  const reader = new FileReader();
-  return new Promise((resolve, reject) => {
-    reader.onload = async () => {
-      const contentType = file.type || 'application/octet-stream';
-      const base64Data = btoa(new Uint8Array(reader.result).reduce((data, byte) => data + String.fromCharCode(byte), ''));
-      
-      const multipartRequestBody =
-        delimiter +
-        'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
-        JSON.stringify(metadata) +
-        delimiter +
-        'Content-Type: ' + contentType + '\r\n' +
-        'Content-Transfer-Encoding: base64\r\n\r\n' +
-        base64Data +
-        close_delim;
+  const contentType = file.type || 'application/octet-stream';
+  
+  // Costruzione del corpo multipart come BLOB per gestire dati binari
+  const metadataPart = new Blob([
+    delimiter,
+    'Content-Type: application/json; charset=UTF-8\r\n\r\n',
+    JSON.stringify(metadata)
+  ], { type: 'application/json' });
 
-      try {
-        const uploadResp = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'multipart/related; boundary=' + boundary
-          },
-          body: multipartRequestBody
-        });
-        
-        if (!uploadResp.ok) {
-          const errorData = await uploadResp.json();
-          throw new Error('Errore Google Drive: ' + (errorData.error?.message || uploadResp.statusText));
-        }
+  const fileHeaderPart = new Blob([
+    delimiter,
+    'Content-Type: ', contentType, '\r\n\r\n'
+  ], { type: 'text/plain' });
 
-        const fileData = await uploadResp.json();
-        
-        // 2. Rendi il file leggibile a chiunque abbia il link
-        await fetch(`https://www.googleapis.com/drive/v3/files/${fileData.id}/permissions`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ role: 'reader', type: 'anyone' })
-        });
-        
-        resolve(fileData.webViewLink);
-      } catch (err) {
-        reject(err);
-      }
-    };
-    reader.onerror = (err) => reject(err);
-    reader.readAsArrayBuffer(file);
-  });
+  const closePart = new Blob([close_delim], { type: 'text/plain' });
+
+  const multipartBody = new Blob([metadataPart, fileHeaderPart, file, closePart], { type: 'multipart/related; boundary=' + boundary });
+
+  try {
+    console.log('Invio richiesta upload...');
+    const uploadResp = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: multipartBody
+    });
+    
+    if (!uploadResp.ok) {
+      const errorData = await uploadResp.json();
+      console.error('Errore API Drive:', errorData);
+      throw new Error('Errore Google Drive: ' + (errorData.error?.message || uploadResp.statusText));
+    }
+
+    const fileData = await uploadResp.json();
+    console.log('File caricato con successo, ID:', fileData.id);
+    
+    // 2. Rendi il file leggibile a chiunque abbia il link
+    console.log('Impostazione permessi pubblici...');
+    const permResp = await fetch(`https://www.googleapis.com/drive/v3/files/${fileData.id}/permissions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ role: 'reader', type: 'anyone' })
+    });
+    
+    if (!permResp.ok) console.warn('Impossibile impostare i permessi pubblici, il file potrebbe non essere visibile ad altri.');
+
+    console.log('Link finale:', fileData.webViewLink);
+    return fileData.webViewLink;
+  } catch (err) {
+    console.error('Errore durante l\'upload:', err);
+    throw err;
+  }
 }
 
 // ================================================================
