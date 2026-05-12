@@ -108,17 +108,6 @@ function showToast(msg, duration = 3000) {
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => { t.style.display = 'none'; }, duration);
   }
-  
-  // Scrivi nel log di debug
-  const log = document.getElementById('debug-log');
-  if (log) {
-    const entry = document.createElement('div');
-    entry.style.borderBottom = '1px solid #1e293b';
-    entry.style.padding = '2px 0';
-    entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-    log.appendChild(entry);
-    log.scrollTop = log.scrollHeight;
-  }
 }
 
 function openModal(id) {
@@ -433,8 +422,6 @@ async function loadNotes() {
   const container = document.getElementById('notes-container');
   container.innerHTML = '<div class="empty-state"><div class="spinner" style="border-color:var(--border);border-top-color:var(--primary)"></div></div>';
 
-  console.log('Caricamento note per categoria:', state.selectedCategoryId, 'Query ricerca:', state.searchQuery);
-
   try {
     let baseQuery = sb.from('notes').select('*');
 
@@ -681,14 +668,12 @@ async function getGoogleToken(forcePopup = false) {
     }
 
     state.pendingAuthResolve = resolve;
-    showToast('🔑 Apertura finestra di accesso Google...');
     tokenClient.requestAccessToken({ prompt: forcePopup ? 'select_account' : '' });
   });
 }
 
 async function getOrCreateFolder(token) {
   const folderName = 'Appunti_Files';
-  showToast('🔍 Ricerca cartella Appunti_Files...');
   
   try {
     const searchResp = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`, {
@@ -699,11 +684,9 @@ async function getOrCreateFolder(token) {
     if (searchData.error) throw new Error('Errore ricerca Drive: ' + searchData.error.message);
 
     if (searchData.files && searchData.files.length > 0) {
-      showToast('📂 Cartella trovata.');
       return searchData.files[0].id;
     }
     
-    showToast('📁 Creazione nuova cartella...');
     const createResp = await fetch('https://www.googleapis.com/drive/v3/files', {
       method: 'POST',
       headers: {
@@ -718,10 +701,8 @@ async function getOrCreateFolder(token) {
     const folderData = await createResp.json();
     if (folderData.error) throw new Error('Errore creazione cartella: ' + folderData.error.message);
     
-    showToast('✅ Cartella creata.');
     return folderData.id;
   } catch (err) {
-    showToast('❌ Errore Cartella: ' + err.message);
     throw err;
   }
 }
