@@ -357,12 +357,13 @@ html, body {
   padding: 7px 8px;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background var(--transition);
+  transition: filter var(--transition);
   user-select: none;
+  margin-bottom: 2px;
+  border-left: 3px solid transparent; /* placeholder, sovrascritta da JS */
 }
-.cat-item:hover { background: var(--bg-hover); }
-.cat-item.selected { background: var(--primary-light); }
-.cat-item.selected .cat-name { color: var(--primary); font-weight: 600; }
+.cat-item:hover { filter: brightness(0.93); }
+.cat-item.selected .cat-name { font-weight: 600; }
 
 .cat-toggle {
   width: 18px;
