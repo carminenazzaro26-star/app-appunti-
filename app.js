@@ -8,6 +8,73 @@
 let sb;
 
 // ================================================================
+// SESSION TIMEOUT PER INATTIVITÀ
+// ================================================================
+const INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000; // 30 minuti
+const WARNING_BEFORE_MS     = 60 * 1000;       // avvisa 60 sec prima
+
+let inactivityTimer    = null;
+let warningTimer       = null;
+let countdownInterval  = null;
+
+function resetInactivityTimer() {
+  // Nascondi il banner di avviso
+  const banner = document.getElementById('session-warning');
+  if (banner) banner.style.display = 'none';
+  clearInterval(countdownInterval);
+
+  // Cancella i timer precedenti
+  clearTimeout(inactivityTimer);
+  clearTimeout(warningTimer);
+
+  // Non avviare il timer se l'utente non è loggato
+  if (!state.user) return;
+
+  // Timer avviso: scatta a (TIMEOUT - 60s)
+  warningTimer = setTimeout(() => {
+    if (!state.user) return;
+    let secondsLeft = Math.round(WARNING_BEFORE_MS / 1000);
+    document.getElementById('session-countdown').textContent = secondsLeft;
+    banner.style.display = 'block';
+
+    countdownInterval = setInterval(() => {
+      secondsLeft--;
+      const el = document.getElementById('session-countdown');
+      if (el) el.textContent = secondsLeft;
+      if (secondsLeft <= 0) clearInterval(countdownInterval);
+    }, 1000);
+  }, INACTIVITY_TIMEOUT_MS - WARNING_BEFORE_MS);
+
+  // Timer logout: scatta a TIMEOUT
+  inactivityTimer = setTimeout(() => {
+    if (!state.user) return;
+    showToast('⏰ Disconnesso per inattività', 4000);
+    handleLogout();
+  }, INACTIVITY_TIMEOUT_MS);
+}
+
+function startInactivityTimer() {
+  // Ascolta qualsiasi interazione utente
+  const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
+  events.forEach(ev =>
+    document.addEventListener(ev, resetInactivityTimer, { passive: true })
+  );
+  resetInactivityTimer();
+}
+
+function stopInactivityTimer() {
+  clearTimeout(inactivityTimer);
+  clearTimeout(warningTimer);
+  clearInterval(countdownInterval);
+  const banner = document.getElementById('session-warning');
+  if (banner) banner.style.display = 'none';
+  // Rimuovi i listener
+  const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
+  events.forEach(ev =>
+    document.removeEventListener(ev, resetInactivityTimer)
+  );
+}
+// ================================================================
 // STATO APPLICAZIONE
 // ================================================================
 const state = {
@@ -152,6 +219,7 @@ async function checkSession() {
 }
 
 async function handleLogout() {
+  stopInactivityTimer(); // ferma il timer prima di sloggarsi
   await sb.auth.signOut();
   state.user = null;
   state.categories = [];
@@ -162,12 +230,12 @@ async function handleLogout() {
 }
 
 function enterDashboard() {
-  // Mostra email utente
   const email = state.user.email || '';
   document.getElementById('user-email-display').textContent = email;
   document.getElementById('user-avatar').textContent = email.charAt(0).toUpperCase();
   showPage('page-dashboard');
   loadCategories();
+  startInactivityTimer(); // avvia il timer inattività
 }
 
 // ================================================================
