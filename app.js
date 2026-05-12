@@ -102,10 +102,23 @@ function showPage(id) {
 let toastTimer;
 function showToast(msg, duration = 3000) {
   const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.style.display = 'block';
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.style.display = 'none'; }, duration);
+  if (t) {
+    t.textContent = msg;
+    t.style.display = 'block';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.style.display = 'none'; }, duration);
+  }
+  
+  // Scrivi nel log di debug
+  const log = document.getElementById('debug-log');
+  if (log) {
+    const entry = document.createElement('div');
+    entry.style.borderBottom = '1px solid #1e293b';
+    entry.style.padding = '2px 0';
+    entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    log.appendChild(entry);
+    log.scrollTop = log.scrollHeight;
+  }
 }
 
 function openModal(id) {
@@ -664,31 +677,42 @@ async function getGoogleToken() {
 
 async function getOrCreateFolder(token) {
   const folderName = 'Appunti_Files';
+  showToast('🔍 Ricerca cartella Appunti_Files...');
   
-  // Cerca la cartella
-  const searchResp = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  const searchData = await searchResp.json();
-  
-  if (searchData.files && searchData.files.length > 0) {
-    return searchData.files[0].id;
+  try {
+    const searchResp = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const searchData = await searchResp.json();
+    
+    if (searchData.error) throw new Error('Errore ricerca Drive: ' + searchData.error.message);
+
+    if (searchData.files && searchData.files.length > 0) {
+      showToast('📂 Cartella trovata.');
+      return searchData.files[0].id;
+    }
+    
+    showToast('📁 Creazione nuova cartella...');
+    const createResp = await fetch('https://www.googleapis.com/drive/v3/files', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        name: folderName,
+        mimeType: 'application/vnd.google-apps.folder'
+      })
+    });
+    const folderData = await createResp.json();
+    if (folderData.error) throw new Error('Errore creazione cartella: ' + folderData.error.message);
+    
+    showToast('✅ Cartella creata.');
+    return folderData.id;
+  } catch (err) {
+    showToast('❌ Errore Cartella: ' + err.message);
+    throw err;
   }
-  
-  // Crea la cartella se non esiste
-  const createResp = await fetch('https://www.googleapis.com/drive/v3/files', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      name: folderName,
-      mimeType: 'application/vnd.google-apps.folder'
-    })
-  });
-  const folderData = await createResp.json();
-  return folderData.id;
 }
 
 async function uploadToDrive(file) {
