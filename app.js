@@ -420,8 +420,9 @@ async function loadNotes() {
   const container = document.getElementById('notes-container');
   container.innerHTML = '<div class="empty-state"><div class="spinner" style="border-color:var(--border);border-top-color:var(--primary)"></div></div>';
 
-  let query = sb.from('notes').select('*').order('created_at', { ascending: false, nullsFirst: false });
+  let query = sb.from('notes').select('*');
 
+  // Applica filtri
   if (state.searchQuery) {
     query = query.ilike('title', `%${state.searchQuery}%`);
     document.getElementById('notes-list-title').textContent = `Risultati: "${state.searchQuery}"`;
@@ -436,8 +437,22 @@ async function loadNotes() {
     return;
   }
 
-  const { data, error } = await query;
-  if (error) { showToast('❌ Errore caricamento note: ' + error.message); return; }
+  // Tenta l'ordinamento ( fallback se created_at manca )
+  let { data, error } = await query.order('created_at', { ascending: false, nullsFirst: false });
+  
+  if (error && error.message.includes('created_at')) {
+    console.warn('Colonna created_at mancante, ripiego su id');
+    const retry = await query.order('id', { ascending: false });
+    data = retry.data;
+    error = retry.error;
+  }
+
+  if (error) { 
+    showToast('❌ Errore caricamento note: ' + error.message); 
+    console.error('Errore Supabase:', error);
+    return; 
+  }
+  
   state.notes = data || [];
   renderNotes();
 }
