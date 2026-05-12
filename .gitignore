@@ -5,3 +5,6 @@ __pycache__/
 build/
 dist/
 *.spec
+
+# ⚠️ Contiene le chiavi Supabase reali — NON committare mai!
+config.js

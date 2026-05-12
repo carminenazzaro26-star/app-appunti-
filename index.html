@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="App Appunti — Gestisci i tuoi appunti e file in modo semplice e sicuro." />
+  <title>App Appunti</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ======== LOGIN PAGE ======== -->
+  <div id="page-login" class="page active">
+    <div class="login-bg">
+      <div class="login-card">
+        <div class="login-logo">
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none"><rect width="36" height="36" rx="10" fill="#4C51F7"/><path d="M10 12h16M10 18h10M10 24h13" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
+          <span>App Appunti</span>
+        </div>
+        <h1>Bentornato</h1>
+        <p class="login-sub">Accedi per gestire i tuoi appunti</p>
+
+        <div id="login-error" class="alert-error" style="display:none"></div>
+
+        <div class="form-group">
+          <label for="email-input">Email</label>
+          <input type="email" id="email-input" placeholder="nome@esempio.com" autocomplete="email" />
+        </div>
+        <div class="form-group">
+          <label for="password-input">Password</label>
+          <input type="password" id="password-input" placeholder="••••••••" autocomplete="current-password" />
+        </div>
+        <button id="login-btn" class="btn-primary btn-full" onclick="handleLogin()">
+          <span id="login-btn-text">Accedi</span>
+          <div id="login-spinner" class="spinner" style="display:none"></div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======== DASHBOARD PAGE ======== -->
+  <div id="page-dashboard" class="page">
+
+    <!-- HEADER -->
+    <header class="app-header">
+      <div class="header-left">
+        <button id="sidebar-toggle" class="icon-btn" onclick="toggleSidebar()" title="Toggle sidebar">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><rect y="3" width="20" height="2" rx="1"/><rect y="9" width="14" height="2" rx="1"/><rect y="15" width="20" height="2" rx="1"/></svg>
+        </button>
+        <div class="app-logo-small">
+          <svg width="24" height="24" viewBox="0 0 36 36" fill="none"><rect width="36" height="36" rx="10" fill="#4C51F7"/><path d="M10 12h16M10 18h10M10 24h13" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
+          <span>App Appunti</span>
+        </div>
+      </div>
+      <div class="header-center">
+        <div class="search-wrapper">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="#94A3B8" stroke-width="1.5"/><path d="M10.5 10.5L14 14" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <input type="text" id="search-input" placeholder="Cerca appunti..." oninput="handleSearch()" />
+          <button class="search-clear" id="search-clear" onclick="clearSearch()" style="display:none">✕</button>
+        </div>
+      </div>
+      <div class="header-right">
+        <button class="btn-primary btn-sm" id="upload-btn" onclick="triggerUpload()">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v8M4 4l3-3 3 3M2 11h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Carica
+        </button>
+        <div class="user-chip" id="user-chip">
+          <div class="user-avatar" id="user-avatar">U</div>
+          <span id="user-email-display"></span>
+        </div>
+        <button class="icon-btn" onclick="handleLogout()" title="Esci">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M6.5 9h8M12 6l2.5 3L12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 3H4a1 1 0 00-1 1v10a1 1 0 001 1h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN LAYOUT -->
+    <div class="dashboard-layout">
+
+      <!-- SIDEBAR -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <span class="sidebar-title">Categorie</span>
+          <button class="icon-btn" onclick="openAddCategoryDialog()" title="Nuova categoria">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 3v12M3 9h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <div id="categories-tree" class="categories-tree">
+          <div class="empty-state-small">Nessuna categoria</div>
+        </div>
+      </aside>
+
+      <!-- NOTES LIST -->
+      <section class="notes-list" id="notes-list-panel">
+        <div class="notes-list-header">
+          <span id="notes-list-title" class="notes-list-title">Tutti gli appunti</span>
+          <span id="notes-count" class="notes-count"></span>
+        </div>
+        <div id="notes-container" class="notes-container">
+          <div class="empty-state">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><rect x="8" y="6" width="32" height="36" rx="4" stroke="#CBD5E1" stroke-width="2"/><path d="M16 16h16M16 22h12M16 28h8" stroke="#CBD5E1" stroke-width="2" stroke-linecap="round"/></svg>
+            <p>Seleziona una categoria o cerca un appunto</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- FILE PREVIEW -->
+      <section class="file-preview" id="file-preview-panel">
+        <div id="preview-empty" class="preview-empty">
+          <svg width="64" height="64" viewBox="0 0 64 64" fill="none"><rect x="10" y="8" width="44" height="48" rx="6" stroke="#E2E8F0" stroke-width="2"/><path d="M22 24h20M22 32h16M22 40h10" stroke="#E2E8F0" stroke-width="2" stroke-linecap="round"/></svg>
+          <p>Seleziona un appunto per visualizzarlo</p>
+        </div>
+        <div id="preview-content" class="preview-content" style="display:none">
+          <div class="preview-header">
+            <div class="preview-file-icon" id="preview-icon">📄</div>
+            <div class="preview-file-info">
+              <h2 id="preview-title">Nome File</h2>
+              <span id="preview-meta" class="preview-meta"></span>
+            </div>
+          </div>
+          <div id="preview-image-wrapper" class="preview-image-wrapper" style="display:none">
+            <img id="preview-image" src="" alt="Anteprima" />
+          </div>
+          <div id="preview-pdf-wrapper" class="preview-pdf-wrapper" style="display:none">
+            <div class="pdf-placeholder">
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><rect x="8" y="4" width="32" height="40" rx="4" fill="#FEF2F2"/><path d="M16 20h16M16 26h12M16 32h8" stroke="#EF4444" stroke-width="2" stroke-linecap="round"/><path d="M28 4v10h12" stroke="#FCA5A5" stroke-width="1.5"/></svg>
+              <p>File PDF</p>
+            </div>
+          </div>
+          <div class="preview-actions">
+            <button class="btn-primary" id="download-btn" onclick="downloadCurrentFile()">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v8M5 8l3 3 3-3M2 13h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Scarica / Apri
+            </button>
+            <button class="btn-danger" onclick="deleteCurrentNote()">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 4h10M6 4V2h4v2M5 4l.5 9h5L11 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Elimina
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ======== MODALS ======== -->
+
+  <!-- Add Category Modal -->
+  <div id="modal-add-category" class="modal-overlay" onclick="closeModal('modal-add-category')">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Nuova Categoria</h3>
+        <button class="icon-btn" onclick="closeModal('modal-add-category')">✕</button>
+      </div>
+      <p class="modal-hint" id="modal-cat-hint">Crea una categoria principale</p>
+      <div class="form-group">
+        <label for="new-cat-name">Nome</label>
+        <input type="text" id="new-cat-name" placeholder="Es. Matematica" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeModal('modal-add-category')">Annulla</button>
+        <button class="btn-primary" onclick="addCategory()">Crea</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden file input -->
+  <input type="file" id="file-input" style="display:none" onchange="handleFileSelected(event)" />
+
+  <!-- Toast notification -->
+  <div id="toast" class="toast" style="display:none"></div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
