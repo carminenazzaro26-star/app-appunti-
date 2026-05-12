@@ -663,22 +663,23 @@ async function getGoogleToken() {
       return;
     }
 
-    showToast('🔑 Richiesta accesso a Google Drive...');
+    showToast('🔑 Apertura finestra di accesso Google...');
     
     tokenClient.callback = (response) => {
       console.log('Risposta Google Auth:', response);
       if (response.error !== undefined) {
-        showToast('❌ Errore Google Auth Response: ' + response.error);
+        showToast('❌ Errore Google Auth: ' + response.error);
         reject(response);
         return;
       }
-      showToast('✅ Accesso Google autorizzato.');
+      showToast('✅ Accesso Google autorizzato con successo!');
       state.googleToken = response.access_token;
       state.googleTokenExpiry = Date.now() + (response.expires_in * 1000);
       resolve(state.googleToken);
     };
 
-    tokenClient.requestAccessToken({ prompt: '' });
+    // Usiamo prompt: 'select_account' per essere sicuri che la finestra si apra
+    tokenClient.requestAccessToken({ prompt: 'select_account' });
   });
 }
 
