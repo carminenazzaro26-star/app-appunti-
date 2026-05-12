@@ -442,10 +442,30 @@ html, body {
   transition: background var(--transition);
   border: 1.5px solid transparent;
   margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
+.note-main-info { flex: 1; overflow: hidden; }
+.note-quick-download {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg-app);
+  color: var(--text-500);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+.note-quick-download:hover { background: var(--primary-light); color: var(--primary); }
 .note-card:hover { background: var(--bg-hover); }
 .note-card.selected { background: var(--primary-light); border-color: var(--primary); }
 .note-card.selected .note-title { color: var(--primary); }
+.note-card.selected .note-quick-download { background: white; }
 
 .note-title { font-size: 13px; font-weight: 600; color: var(--text-900); margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .note-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-500); }

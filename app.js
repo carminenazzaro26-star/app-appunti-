@@ -481,8 +481,13 @@ function renderNotes() {
     const card = document.createElement('div');
     card.className = 'note-card' + (state.selectedNote?.id === note.id ? ' selected' : '');
     card.innerHTML = `
-      <div class="note-title">${escapeHtml(note.title)}</div>
-      <div class="note-badge">${getFileIcon(note.title)} <span>${getExtLabel(note.title)}</span></div>
+      <div class="note-main-info">
+        <div class="note-title">${escapeHtml(note.title)}</div>
+        <div class="note-badge">${getFileIcon(note.title)} <span>${getExtLabel(note.title)}</span></div>
+      </div>
+      <button class="note-quick-download" title="Scarica/Apri" onclick="event.stopPropagation(); window.open('${note.content.startsWith('http') ? note.content : sb.storage.from('appunti').getPublicUrl(note.content).data.publicUrl}', '_blank')">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v8M5 8l3 3 3-3M2 13h12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
     `;
     card.addEventListener('click', () => selectNote(note));
     container.appendChild(card);
