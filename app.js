@@ -415,7 +415,7 @@ async function loadNotes() {
   const container = document.getElementById('notes-container');
   container.innerHTML = '<div class="empty-state"><div class="spinner" style="border-color:var(--border);border-top-color:var(--primary)"></div></div>';
 
-  let query = sb.from('notes').select('*').order('created_at', { ascending: false });
+  let query = sb.from('notes').select('*').order('id', { ascending: false });
 
   if (state.searchQuery) {
     query = query.ilike('title', `%${state.searchQuery}%`);
@@ -432,7 +432,7 @@ async function loadNotes() {
   }
 
   const { data, error } = await query;
-  if (error) { showToast('Errore caricamento note'); return; }
+  if (error) { showToast('❌ Errore caricamento note: ' + error.message); return; }
   state.notes = data || [];
   renderNotes();
 }
