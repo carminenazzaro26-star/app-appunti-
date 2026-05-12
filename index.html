@@ -198,6 +198,15 @@
   <!-- Toast notification -->
   <div id="toast" class="toast" style="display:none"></div>
 
+  <!-- Debug Console Overlay -->
+  <div id="debug-panel" style="position: fixed; bottom: 0; left: 0; right: 0; background: #0f172a; color: #38bdf8; font-family: monospace; font-size: 11px; padding: 10px; border-top: 1.5px solid #334155; z-index: 10000; max-height: 200px; overflow-y: auto;">
+    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 5px; margin-bottom: 5px;">
+      <strong>CONSOLE DI DEBUG (SISTEMA)</strong>
+      <button onclick="document.getElementById('debug-log').innerHTML=''" style="background:none; border:none; color:#64748b; cursor:pointer">Pulisci</button>
+    </div>
+    <div id="debug-log"></div>
+  </div>
+
   <!-- Scripts -->
   <script src="https://accounts.google.com/gsi/client"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
