@@ -568,12 +568,19 @@ function initGoogleAuth() {
     return;
   }
   
+  if (!window.GOOGLE_CLIENT_ID || window.GOOGLE_CLIENT_ID === '__GOOGLE_CLIENT_ID__') {
+    console.warn('Google Client ID non configurato. L\'upload su Drive non funzionerà.');
+    return;
+  }
+  
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: window.GOOGLE_CLIENT_ID,
     scope: 'https://www.googleapis.com/auth/drive.file',
     callback: (response) => {
       if (response.error !== undefined) {
-        throw (response);
+        console.error('Errore Google Auth:', response);
+        showToast('❌ Errore autenticazione Google: ' + response.error);
+        return;
       }
       state.googleToken = response.access_token;
       state.googleTokenExpiry = Date.now() + (response.expires_in * 1000);
@@ -584,6 +591,11 @@ function initGoogleAuth() {
 
 async function getGoogleToken() {
   return new Promise((resolve, reject) => {
+    if (!tokenClient) {
+      reject(new Error('Sistema di autenticazione Google non inizializzato. Controlla il Client ID nelle impostazioni GitHub.'));
+      return;
+    }
+
     if (state.googleToken && Date.now() < state.googleTokenExpiry - 60000) {
       resolve(state.googleToken);
       return;
@@ -598,7 +610,7 @@ async function getGoogleToken() {
       resolve(state.googleToken);
     };
 
-    tokenClient.requestAccessToken({ prompt: state.googleToken ? '' : 'consent' });
+    tokenClient.requestAccessToken({ prompt: '' });
   });
 }
 
@@ -635,35 +647,66 @@ async function uploadToDrive(file) {
   const token = await getGoogleToken();
   const folderId = await getOrCreateFolder(token);
   
-  // 1. Carica il file
   const metadata = {
     name: file.name,
     parents: [folderId]
   };
   
-  const formData = new FormData();
-  formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-  formData.append('file', file);
-  
-  const uploadResp = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${token}` },
-    body: formData
+  const boundary = 'foo_bar_baz';
+  const delimiter = "\r\n--" + boundary + "\r\n";
+  const close_delim = "\r\n--" + boundary + "--";
+
+  const reader = new FileReader();
+  return new Promise((resolve, reject) => {
+    reader.onload = async () => {
+      const contentType = file.type || 'application/octet-stream';
+      const base64Data = btoa(new Uint8Array(reader.result).reduce((data, byte) => data + String.fromCharCode(byte), ''));
+      
+      const multipartRequestBody =
+        delimiter +
+        'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
+        JSON.stringify(metadata) +
+        delimiter +
+        'Content-Type: ' + contentType + '\r\n' +
+        'Content-Transfer-Encoding: base64\r\n\r\n' +
+        base64Data +
+        close_delim;
+
+      try {
+        const uploadResp = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/related; boundary=' + boundary
+          },
+          body: multipartRequestBody
+        });
+        
+        if (!uploadResp.ok) {
+          const errorData = await uploadResp.json();
+          throw new Error('Errore Google Drive: ' + (errorData.error?.message || uploadResp.statusText));
+        }
+
+        const fileData = await uploadResp.json();
+        
+        // 2. Rendi il file leggibile a chiunque abbia il link
+        await fetch(`https://www.googleapis.com/drive/v3/files/${fileData.id}/permissions`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ role: 'reader', type: 'anyone' })
+        });
+        
+        resolve(fileData.webViewLink);
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = (err) => reject(err);
+    reader.readAsArrayBuffer(file);
   });
-  
-  const fileData = await uploadResp.json();
-  
-  // 2. Rendi il file leggibile a chiunque abbia il link (opzionale, ma utile per l'app)
-  await fetch(`https://www.googleapis.com/drive/v3/files/${fileData.id}/permissions`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ role: 'reader', type: 'anyone' })
-  });
-  
-  return fileData.webViewLink;
 }
 
 // ================================================================
