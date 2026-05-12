@@ -658,14 +658,21 @@ async function getGoogleToken() {
     }
 
     if (state.googleToken && Date.now() < state.googleTokenExpiry - 60000) {
+      showToast('🔑 Uso token esistente...');
       resolve(state.googleToken);
       return;
     }
 
+    showToast('🔑 Richiesta accesso a Google Drive...');
+    
     tokenClient.callback = (response) => {
+      console.log('Risposta Google Auth:', response);
       if (response.error !== undefined) {
+        showToast('❌ Errore Google Auth Response: ' + response.error);
         reject(response);
+        return;
       }
+      showToast('✅ Accesso Google autorizzato.');
       state.googleToken = response.access_token;
       state.googleTokenExpiry = Date.now() + (response.expires_in * 1000);
       resolve(state.googleToken);
