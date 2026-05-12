@@ -420,41 +420,51 @@ async function loadNotes() {
   const container = document.getElementById('notes-container');
   container.innerHTML = '<div class="empty-state"><div class="spinner" style="border-color:var(--border);border-top-color:var(--primary)"></div></div>';
 
-  let query = sb.from('notes').select('*');
+  console.log('Caricamento note per categoria:', state.selectedCategoryId, 'Query ricerca:', state.searchQuery);
 
-  // Applica filtri
-  if (state.searchQuery) {
-    query = query.ilike('title', `%${state.searchQuery}%`);
-    document.getElementById('notes-list-title').textContent = `Risultati: "${state.searchQuery}"`;
-  } else if (state.selectedCategoryId) {
-    query = query.eq('category_id', state.selectedCategoryId);
-    const cat = state.categories.find(c => c.id === state.selectedCategoryId);
-    document.getElementById('notes-list-title').textContent = cat ? cat.name : 'Appunti';
-  } else {
-    container.innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 48 48" fill="none"><rect x="8" y="6" width="32" height="36" rx="4" stroke="#CBD5E1" stroke-width="2"/><path d="M16 16h16M16 22h12M16 28h8" stroke="#CBD5E1" stroke-width="2" stroke-linecap="round"/></svg><p>Seleziona una categoria o cerca un appunto</p></div>';
-    document.getElementById('notes-count').textContent = '';
-    document.getElementById('notes-list-title').textContent = 'Appunti';
-    return;
-  }
+  try {
+    let baseQuery = sb.from('notes').select('*');
 
-  // Tenta l'ordinamento ( fallback se created_at manca )
-  let { data, error } = await query.order('created_at', { ascending: false, nullsFirst: false });
-  
-  if (error && error.message.includes('created_at')) {
-    console.warn('Colonna created_at mancante, ripiego su id');
-    const retry = await query.order('id', { ascending: false });
-    data = retry.data;
-    error = retry.error;
-  }
+    if (state.searchQuery) {
+      baseQuery = baseQuery.ilike('title', `%${state.searchQuery}%`);
+      document.getElementById('notes-list-title').textContent = `Risultati: "${state.searchQuery}"`;
+    } else if (state.selectedCategoryId) {
+      baseQuery = baseQuery.eq('category_id', state.selectedCategoryId);
+      const cat = state.categories.find(c => c.id === state.selectedCategoryId);
+      document.getElementById('notes-list-title').textContent = cat ? cat.name : 'Appunti';
+    } else {
+      container.innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 48 48" fill="none"><rect x="8" y="6" width="32" height="36" rx="4" stroke="#CBD5E1" stroke-width="2"/><path d="M16 16h16M16 22h12M16 28h8" stroke="#CBD5E1" stroke-width="2" stroke-linecap="round"/></svg><p>Seleziona una categoria o cerca un appunto</p></div>';
+      document.getElementById('notes-count').textContent = '';
+      document.getElementById('notes-list-title').textContent = 'Appunti';
+      return;
+    }
 
-  if (error) { 
-    showToast('❌ Errore caricamento note: ' + error.message); 
-    console.error('Errore Supabase:', error);
-    return; 
+    // Prova ad ordinare per created_at
+    let result = await baseQuery.order('created_at', { ascending: false, nullsFirst: false });
+    
+    if (result.error && result.error.message.includes('created_at')) {
+      console.warn('Colonna created_at mancante, ripiego su id');
+      // Ripetiamo la logica dei filtri su una nuova query pulita per sicurezza
+      let fallbackQuery = sb.from('notes').select('*');
+      if (state.searchQuery) {
+        fallbackQuery = fallbackQuery.ilike('title', `%${state.searchQuery}%`);
+      } else if (state.selectedCategoryId) {
+        fallbackQuery = fallbackQuery.eq('category_id', state.selectedCategoryId);
+      }
+      result = await fallbackQuery.order('id', { ascending: false });
+    }
+
+    if (result.error) throw result.error;
+
+    state.notes = result.data || [];
+    console.log('Note caricate:', state.notes.length);
+    renderNotes();
+    
+  } catch (err) {
+    console.error('Errore critico loadNotes:', err);
+    showToast('❌ Errore caricamento note: ' + err.message);
+    container.innerHTML = `<div class="empty-state"><p style="color:var(--danger)">Errore: ${err.message}</p></div>`;
   }
-  
-  state.notes = data || [];
-  renderNotes();
 }
 
 function renderNotes() {
