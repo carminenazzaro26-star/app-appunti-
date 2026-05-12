@@ -86,6 +86,8 @@ const state = {
   selectedNote: null,
   searchQuery: '',
   selectedColor: '#4C51F7',  // colore default per nuova categoria
+  googleToken: null,
+  googleTokenExpiry: 0,
 };
 
 // ================================================================
@@ -206,6 +208,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 4. Controlla sessione esistente (auto-login se già loggato)
   checkSession();
+
+  // 5. Inizializza Google Auth
+  initGoogleAuth();
 });
 
 async function checkSession() {
@@ -491,12 +496,31 @@ function showPreview(note) {
   pdfWrap.style.display = 'none';
 
   if (note.content) {
-    const publicUrl = sb.storage.from('appunti').getPublicUrl(note.content).data.publicUrl;
-    if (isImage(note.title)) {
-      document.getElementById('preview-image').src = publicUrl;
-      imgWrap.style.display = 'flex';
-    } else if (/\.pdf$/i.test(note.title)) {
-      pdfWrap.style.display = 'flex';
+    if (note.content.startsWith('http')) {
+      // Link Google Drive
+      document.getElementById('preview-image-wrapper').style.display = 'none';
+      document.getElementById('preview-pdf-wrapper').style.display = 'flex';
+      document.getElementById('preview-pdf-wrapper').innerHTML = `
+        <div class="pdf-placeholder">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><path d="M10 4h20l10 10v30H10V4z" fill="#E2E8F0"/><path d="M30 4v10h10" fill="#CBD5E1"/><text x="14" y="32" font-family="Arial" font-size="8" fill="#64748B">G-DRIVE</text></svg>
+          <p>Documento su Google Drive</p>
+          <a href="${note.content}" target="_blank" class="btn-secondary" style="margin-top:10px">Apri in Google Drive</a>
+        </div>
+      `;
+    } else {
+      const publicUrl = sb.storage.from('appunti').getPublicUrl(note.content).data.publicUrl;
+      if (isImage(note.title)) {
+        document.getElementById('preview-image').src = publicUrl;
+        imgWrap.style.display = 'flex';
+      } else if (/\.pdf$/i.test(note.title)) {
+        pdfWrap.style.display = 'flex';
+        pdfWrap.innerHTML = `
+          <div class="pdf-placeholder">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><rect x="8" y="4" width="32" height="40" rx="4" fill="#FEF2F2"/><path d="M16 20h16M16 26h12M16 32h8" stroke="#EF4444" stroke-width="2" stroke-linecap="round"/><path d="M28 4v10h12" stroke="#FCA5A5" stroke-width="1.5"/></svg>
+            <p>File PDF</p>
+          </div>
+        `;
+      }
     }
   }
 }
@@ -521,8 +545,125 @@ async function deleteCurrentNote() {
 
 function downloadCurrentFile() {
   if (!state.selectedNote?.content) return;
-  const { data } = sb.storage.from('appunti').getPublicUrl(state.selectedNote.content, { download: true });
-  window.open(data.publicUrl, '_blank');
+  
+  if (state.selectedNote.content.startsWith('http')) {
+    // Link Google Drive o esterno
+    window.open(state.selectedNote.content, '_blank');
+  } else {
+    // Path Supabase Storage
+    const { data } = sb.storage.from('appunti').getPublicUrl(state.selectedNote.content, { download: true });
+    window.open(data.publicUrl, '_blank');
+  }
+}
+
+// ================================================================
+// GOOGLE DRIVE INTEGRATION
+// ================================================================
+
+let tokenClient;
+
+function initGoogleAuth() {
+  if (typeof google === 'undefined') {
+    console.error('Google Identity Services script non caricato');
+    return;
+  }
+  
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: window.GOOGLE_CLIENT_ID,
+    scope: 'https://www.googleapis.com/auth/drive.file',
+    callback: (response) => {
+      if (response.error !== undefined) {
+        throw (response);
+      }
+      state.googleToken = response.access_token;
+      state.googleTokenExpiry = Date.now() + (response.expires_in * 1000);
+      console.log('Google Token acquisito con successo');
+    },
+  });
+}
+
+async function getGoogleToken() {
+  return new Promise((resolve, reject) => {
+    if (state.googleToken && Date.now() < state.googleTokenExpiry - 60000) {
+      resolve(state.googleToken);
+      return;
+    }
+
+    tokenClient.callback = (response) => {
+      if (response.error !== undefined) {
+        reject(response);
+      }
+      state.googleToken = response.access_token;
+      state.googleTokenExpiry = Date.now() + (response.expires_in * 1000);
+      resolve(state.googleToken);
+    };
+
+    tokenClient.requestAccessToken({ prompt: state.googleToken ? '' : 'consent' });
+  });
+}
+
+async function getOrCreateFolder(token) {
+  const folderName = 'Appunti_Files';
+  
+  // Cerca la cartella
+  const searchResp = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  const searchData = await searchResp.json();
+  
+  if (searchData.files && searchData.files.length > 0) {
+    return searchData.files[0].id;
+  }
+  
+  // Crea la cartella se non esiste
+  const createResp = await fetch('https://www.googleapis.com/drive/v3/files', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      name: folderName,
+      mimeType: 'application/vnd.google-apps.folder'
+    })
+  });
+  const folderData = await createResp.json();
+  return folderData.id;
+}
+
+async function uploadToDrive(file) {
+  const token = await getGoogleToken();
+  const folderId = await getOrCreateFolder(token);
+  
+  // 1. Carica il file
+  const metadata = {
+    name: file.name,
+    parents: [folderId]
+  };
+  
+  const formData = new FormData();
+  formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+  formData.append('file', file);
+  
+  const uploadResp = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}` },
+    body: formData
+  });
+  
+  const fileData = await uploadResp.json();
+  
+  // 2. Rendi il file leggibile a chiunque abbia il link (opzionale, ma utile per l'app)
+  await fetch(`https://www.googleapis.com/drive/v3/files/${fileData.id}/permissions`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ role: 'reader', type: 'anyone' })
+  });
+  
+  return fileData.webViewLink;
 }
 
 // ================================================================
@@ -566,36 +707,30 @@ async function handleFileSelected(event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  showToast('⏳ Caricamento in corso...');
+  showToast('⏳ Preparazione caricamento...');
 
-  const storagePath = `${state.user.id}/${Date.now()}_${file.name}`;
+  try {
+    const driveLink = await uploadToDrive(file);
+    
+    showToast('⏳ Salvataggio nel database...');
 
-  const { error: uploadError } = await sb.storage
-    .from('appunti')
-    .upload(storagePath, file, { cacheControl: '3600', upsert: true });
+    const { error: insertError } = await sb.from('notes').insert({
+      title: file.name,
+      content: driveLink,
+      category_id: state.selectedCategoryId,
+      user_id: state.user.id,
+    });
 
-  if (uploadError) {
-    showToast('❌ Errore upload: ' + uploadError.message);
+    if (insertError) throw insertError;
+
+    showToast('✅ File caricato su Google Drive! ✓');
     event.target.value = '';
-    return;
-  }
-
-  const { error: insertError } = await sb.from('notes').insert({
-    title: file.name,
-    content: storagePath,
-    category_id: state.selectedCategoryId,
-    user_id: state.user.id,
-  });
-
-  if (insertError) {
-    showToast('❌ Errore salvataggio nota: ' + insertError.message);
+    await loadNotes();
+  } catch (err) {
+    console.error('Errore upload Drive:', err);
+    showToast('❌ Errore caricamento: ' + (err.message || 'Controlla i permessi Google'));
     event.target.value = '';
-    return;
   }
-
-  showToast('✅ File caricato con successo!');
-  event.target.value = '';
-  await loadNotes();
 }
 
 // ================================================================

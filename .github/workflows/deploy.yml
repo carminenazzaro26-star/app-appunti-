@@ -21,6 +21,7 @@ jobs:
           sed \
             -e "s|__SUPABASE_URL__|${{ secrets.SUPABASE_URL }}|g" \
             -e "s|__SUPABASE_KEY__|${{ secrets.SUPABASE_KEY }}|g" \
+            -e "s|__GOOGLE_CLIENT_ID__|${{ secrets.GOOGLE_CLIENT_ID }}|g" \
             config.template.js > config.js
         # NOTA: config.js NON viene committato nel repo (è in .gitignore).
         # Viene generato solo in questo ambiente di build e poi deployato.
